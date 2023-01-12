@@ -85,11 +85,15 @@
                     this.next_el = document.createElement('a');
                     this.next_el.onclick = () => {this.next()};
                     this.next_el.textContent = '>';
+                    this.today_el = document.createElement('a');
+                    this.today_el.onclick = () => {this.today = new Date(); this.update();};
+                    this.today_el.textContent = '.';
 
                     this.nav_el = document.createElement('div');
                     this.nav_el.setAttribute('id', 'nav');
                     this.nav_el.appendChild(this.prev_el);
                     this.nav_el.appendChild(this.year_el);
+                    this.nav_el.appendChild(this.today_el);
                     this.nav_el.appendChild(this.month_el);
                     this.nav_el.appendChild(this.next_el);
 
