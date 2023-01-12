@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>rw</title>
+        <base href="/" target="_top">
+        <style type="text/css">
+            :root {
+                --page-color: #171717;
+                --text-color: #cccccc;
+            }
+            :focus {
+                outline: 0;
+            }
+            body {
+                height: 100vh;
+                margin: 0;
+                overflow: hidden;
+                background: var(--page-color);
+                color: var(--text-color);
+                position: relative;
+            }
+            #calendar {
+                position: absolute;
+                left:0;
+                top: 0;
+                bottom: 0;
+                right: 0;
+                height: 40vh;
+                width: 40vw;
+                margin: auto;
+            }
+            #nav {
+                display: flex;
+                justify-content: space-evenly;
+            }
+            #week {
+                display: grid;
+                grid-template-columns: repeat(7, 1fr);
+            }
+        </style>
+    </head>
+    <body>
+        <script>
+
+            function get_nth_date_of_week (date, offset, start=1) {
+                var that_day = new Date(date);
+                that_day.setDate(date.getDate() - date.getDay() + offset + start);
+                return that_day.getDate();
+            }
+
+            function Task () {
+                this.id = null;
+                this.label = "";
+                this.created_on = null;
+                this.starts_on = null;
+                this.ends_on = null;
+                this.finished_on = null;
+                this.is_finished = function(){
+                    return this.finished_on != null;
+                }
+                this.done_on = [];
+            }
+
+            function View () {
+                this.data = {}; // later read from storage
+                this.tasks = [];
+                this.dates = {};
+                this.today = null;
+
+                this.install = function (host) {
+                    this.today = new Date();
+
+                    this.calendar_el = document.createElement('div');
+                    this.calendar_el.setAttribute('id', 'calendar');
+
+                    this.year_el = document.createElement('span');
+                    this.year_el.setAttribute('id', 'year');
+                    this.month_el = document.createElement('span');
+                    this.month_el.setAttribute('id', 'month');
+
+                    this.prev_el = document.createElement('a');
+                    this.prev_el.onclick = () => {this.prev()};
+                    this.prev_el.textContent = '<';
+                    this.next_el = document.createElement('a');
+                    this.next_el.onclick = () => {this.next()};
+                    this.next_el.textContent = '>';
+
+                    this.nav_el = document.createElement('div');
+                    this.nav_el.setAttribute('id', 'nav');
+                    this.nav_el.appendChild(this.prev_el);
+                    this.nav_el.appendChild(this.year_el);
+                    this.nav_el.appendChild(this.month_el);
+                    this.nav_el.appendChild(this.next_el);
+
+                    this.week = [];
+                    this.week_el = document.createElement('div');
+                    this.week_el.setAttribute('id', 'week');
+
+                    this.calendar_el.appendChild(this.nav_el);
+                    this.calendar_el.appendChild(this.week_el);
+
+                    host.appendChild(this.calendar_el);
+
+                    this.update();
+                }
+
+                /* currently we only worry about weekly views
+                */
+
+                this.prev = function () {
+                    this.today.setDate(this.today.getDate()-7);
+                    this.update();
+                }
+
+                this.next = function () {
+                    this.today.setDate(this.today.getDate()+7);
+                    this.update();
+                }
+
+                this.update = function () {
+                    this.year = this.today.getFullYear();
+                    this.month = this.today.getMonth();
+                    this.year_el.innerText = `${this.year}`;
+                    this.month_el.innerText = `${this.month + 1}`;
+                    
+                    this.week_el.innerHTML = '';
+                    for (var i = 0; i < 7; i++) {
+                        var date = get_nth_date_of_week(this.today, i);
+                        this.week.push(date);
+                        var day_el = document.createElement('span');
+                        day_el.innerText = `${date}`;
+                        this.week_el.appendChild(day_el);
+                    }
+               }
+            }
+
+            window.onload = function () {
+                const rw = new View();
+                rw.install(document.body);
+            }
+
+            document.onkeydown = function keyDown (e) {
+
+            }
+        </script>
+    </body>
+</html>
