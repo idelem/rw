@@ -8,6 +8,7 @@
             :root {
                 --page-color: #171717;
                 --text-color: #cccccc;
+                --mark-color: #47ebc8;
             }
             :focus {
                 outline: 0;
@@ -27,7 +28,7 @@
                 bottom: 0;
                 right: 0;
                 height: 40vh;
-                width: 40vw;
+                width: 36em;
                 margin: auto;
             }
             #nav {
@@ -38,6 +39,44 @@
                 display: grid;
                 grid-template-columns: repeat(7, 1fr);
             }
+            #tasks {
+
+            }
+            #nav, #week {
+                width: 21em;
+            }
+            #nav > *, #week > * {
+                padding: 5px 0;
+            }
+            input {
+                /* text-align: right; */
+                margin-left: 21em;
+                font-size: 1rem;
+                color: var(--text-color);
+                background-color: var(--page-color);
+                border: 0;
+                outline: 0;
+                padding: 5px 0;
+                width: 100%;
+            }
+            .weekend {
+                color: var(--mark-color);
+            }
+            .task {
+                display: grid;
+                grid-template-columns: repeat(12, 1fr);
+                padding: 5px 0;
+            }
+            .bullet {
+
+            }
+            .label {
+                grid-column-start: 8;
+                grid-column-end: 12;
+            }
+            .hidden {
+                display: none;
+            }
         </style>
     </head>
     <body>
@@ -46,12 +85,17 @@
             function get_nth_date_of_week (date, offset, start=1) {
                 var that_day = new Date(date);
                 that_day.setDate(date.getDate() - date.getDay() + offset + start);
-                return that_day.getDate();
+                return that_day;
             }
 
-            function Task () {
+            function is_weekend(date) {
+                var day = date.getDay();
+                return (day === 6) || (day === 0);
+            }
+
+            function Task (label="") {
                 this.id = null;
-                this.label = "";
+                this.label = label;
                 this.created_on = null;
                 this.starts_on = null;
                 this.ends_on = null;
@@ -67,6 +111,7 @@
                 this.tasks = [];
                 this.dates = {};
                 this.today = null;
+                this.focus = null;
 
                 this.install = function (host) {
                     this.today = new Date();
@@ -101,8 +146,18 @@
                     this.week_el = document.createElement('div');
                     this.week_el.setAttribute('id', 'week');
 
+                    this.tasks_el = document.createElement('div');
+                    this.tasks_el.setAttribute('id', 'tasks');
+                    // input
+                    this.input_el = document.createElement('input');
+                    this.input_el.setAttribute("type", "text");
+                    this.input_el.setAttribute("placeholder", "what's your next task?");
+                    this.input_el.onkeydown = (e) => {if(e.keyCode == 13) {this.add_task(this.input_el.value); this.input_el.value = '';}}
+
                     this.calendar_el.appendChild(this.nav_el);
                     this.calendar_el.appendChild(this.week_el);
+                    this.calendar_el.appendChild(this.tasks_el);
+                    this.calendar_el.appendChild(this.input_el);
 
                     host.appendChild(this.calendar_el);
 
@@ -130,13 +185,58 @@
                     
                     this.week_el.innerHTML = '';
                     for (var i = 0; i < 7; i++) {
-                        var date = get_nth_date_of_week(this.today, i);
+                        var day = get_nth_date_of_week(this.today, i);
+                        var date = day.getDate();
                         this.week.push(date);
                         var day_el = document.createElement('span');
                         day_el.innerText = `${date}`;
+                        if (is_weekend(day))
+                            day_el.classList.add("weekend");
                         this.week_el.appendChild(day_el);
                     }
-               }
+
+                    this.tasks_el.innerHTML = '';
+                    this.tasks.forEach((element, i) => {
+                        var task_el = document.createElement('span');
+                        task_el.classList.add("task");
+                        // todo: bullets
+                        var label_el = document.createElement('span');
+                        label_el.innerText = `${element.label}`;
+                        label_el.classList.add("label");
+                        label_el.onclick = (e) => {this.edit_label(task_el, element);};
+                        task_el.appendChild(label_el);
+
+                        this.tasks_el.appendChild(task_el);
+                    });
+                }
+
+                this.add_task = function (label) {
+                    if (label === "")
+                        return;
+                    var task = new Task(label);
+                    this.tasks.push(task);
+                    // console.log(this.tasks);
+                    this.update();
+                }
+
+                this.edit_label = function (task_el, task) {
+                    var label = task_el.lastChild.innerText;
+                    var input_el = document.createElement('input');
+                    input_el.setAttribute("type", "text");
+                    input_el.setAttribute("value", label);
+                    input_el.onblur = (e) => {this.update_label(task_el, task);};
+                    task_el.lastChild.classList.add("hidden");
+                    task_el.appendChild(input_el);
+                    input_el.focus();
+                }
+
+                this.update_label = function (task_el, task) {
+                    var label = task_el.lastChild.value;
+                    task.label = label;
+                    task_el.removeChild(task_el.lastChild); // remove the input
+                    task_el.lastChild.innerText = `${task.label}`;
+                    task_el.lastChild.classList.remove("hidden");
+                }
             }
 
             window.onload = function () {
