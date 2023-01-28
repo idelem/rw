@@ -48,6 +48,9 @@
             #nav > *, #week > * {
                 padding: 5px 0;
             }
+            #input {
+                padding: 5px 0;
+            }
             input {
                 /* text-align: right; */
                 margin-left: 21em;
@@ -56,8 +59,8 @@
                 background-color: var(--page-color);
                 border: 0;
                 outline: 0;
-                padding: 5px 0;
                 width: 100%;
+                font-family: inherit;
             }
             .weekend {
                 color: var(--mark-color);
@@ -152,6 +155,7 @@
                     this.input_el = document.createElement('input');
                     this.input_el.setAttribute("type", "text");
                     this.input_el.setAttribute("placeholder", "what's your next task?");
+                    this.input_el.setAttribute('id', 'input');
                     this.input_el.onkeydown = (e) => {if(e.keyCode == 13) {this.add_task(this.input_el.value); this.input_el.value = '';}}
 
                     this.calendar_el.appendChild(this.nav_el);
@@ -202,8 +206,9 @@
                         // todo: bullets
                         var label_el = document.createElement('span');
                         label_el.innerText = `${element.label}`;
+                        label_el.setAttribute("contentEditable", true);
                         label_el.classList.add("label");
-                        label_el.onclick = (e) => {this.edit_label(task_el, element);};
+                        label_el.onclick = (e) => {label_el.onblur = (e) => {this.update_label(label_el, element); console.log(element)};};
                         task_el.appendChild(label_el);
 
                         this.tasks_el.appendChild(task_el);
@@ -219,23 +224,8 @@
                     this.update();
                 }
 
-                this.edit_label = function (task_el, task) {
-                    var label = task_el.lastChild.innerText;
-                    var input_el = document.createElement('input');
-                    input_el.setAttribute("type", "text");
-                    input_el.setAttribute("value", label);
-                    input_el.onblur = (e) => {this.update_label(task_el, task);};
-                    task_el.lastChild.classList.add("hidden");
-                    task_el.appendChild(input_el);
-                    input_el.focus();
-                }
-
-                this.update_label = function (task_el, task) {
-                    var label = task_el.lastChild.value;
-                    task.label = label;
-                    task_el.removeChild(task_el.lastChild); // remove the input
-                    task_el.lastChild.innerText = `${task.label}`;
-                    task_el.lastChild.classList.remove("hidden");
+                this.update_label = function (label_el, task) {
+                    task.label = label_el.innerText;
                 }
             }
 
