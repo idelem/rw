@@ -29,7 +29,7 @@
                 top: 0;
                 bottom: 0;
                 right: 0;
-                height: 40vh;
+                height: 60vh;
                 width: 36em;
                 margin: auto;
             }
@@ -42,16 +42,18 @@
                 grid-template-columns: repeat(7, 1fr);
             }
             #tasks {
-
             }
+            
             #nav, #week {
                 width: 21em;
             }
             #nav > *, #week > * {
                 padding: 5px 0;
+                text-align: center;
             }
             #input {
-                padding: 5px 0;
+                padding: 5px;
+                width: 15em;
             }
             #toast {
                 opacity: 0;
@@ -96,7 +98,7 @@
             .task {
                 display: grid;
                 grid-template-columns: repeat(12, 1fr);
-                padding: 5px 0;
+                /* padding: 5px 0; */
                 position: relative
             }
             .ops {
@@ -113,16 +115,32 @@
             .op {
                 opacity: 0.5;
                 padding: 0 5px;
+                cursor: pointer;
+            }
+            .bullets {
+                grid-column-start: 1;
+                grid-column-end: 8;
+                display: flex;
             }
             .bullet {
-
+                padding: 5px 0;
+            }
+            .bullet .focus {
             }
             .label {
                 grid-column-start: 8;
                 grid-column-end: 12;
+                padding: 5px;
             }
-            .clickable {
-                cursor:pointer;
+            .cal-btn {
+                text-align: center;
+                display: inline-block;
+                width: 3em;
+                transition: background 0.5s;
+            }
+            .cal-btn:hover {
+                background-color: var(--grid-color);
+                transition: background 0.5s;
             }
             .hidden {
                 display: none;
@@ -151,17 +169,82 @@
                 setTimeout(() => {toast.classList.remove("show"); }, 1000);
             }
 
-            function Task (label="") {
-                this.id = null;
+            function Task ({id=null, label="", created_on=null, starts_on=null, ends_on=null, finished_on=null, done_on=[], due_on=[]}) {
+                this.id = id;
                 this.label = label;
-                this.created_on = null;
-                this.starts_on = null;
-                this.ends_on = null;
-                this.finished_on = null;
+                this.created_on = created_on;
+                this.starts_on = starts_on;
+                this.ends_on = ends_on;
+                this.finished_on = finished_on;
                 this.is_finished = function(){
                     return this.finished_on != null;
                 }
-                this.done_on = [];
+                // timestamps
+                this.done_on = done_on;
+                this.due_on = due_on;
+
+                this.el = null;
+                this.bullets_el = null;
+                this.label_el = null;
+                this.ops_el = null;
+
+                this.install = function (host /* view */, i) {
+                    this.el = document.createElement('span');
+                    this.el.classList.add("task");
+
+                    // bullets
+                    this.bullets_el = document.createElement('span');
+                    this.bullets_el.classList.add("bullets");
+                    this.update_bullets_el(host, i);
+                    this.el.appendChild(this.bullets_el);
+
+                    // label
+                    this.label_el = document.createElement('span');
+                    this.label_el.innerText = `${this.label}`;
+                    this.label_el.setAttribute("contentEditable", true);
+                    this.label_el.classList.add("label");
+                    this.label_el.onclick = (e) => {this.label_el.onblur = (e) => {this.update_label(this.label_el);};};
+                    this.el.appendChild(this.label_el);
+
+                    // ops
+                    this.ops_el = document.createElement('span');
+                    this.ops_el.classList.add("ops");
+                    this.ops_el.innerHTML = `<span class="op">c</span> <span class="op">x</span>`;
+                    var copy_el = this.ops_el.firstChild;
+                    copy_el.onclick = async (e) => {await navigator.clipboard.writeText(this.label_el.innerText); show_toast("copied!")};
+                    var del_el = copy_el.nextElementSibling;
+                    del_el.onclick = (e) => {host.delete_task(i); show_toast("deleted!")};
+                    this.el.appendChild(this.ops_el);
+
+                    host.tasks_el.appendChild(this.el);
+                    this.host_el = host.tasks_el;
+                }
+
+                this.update_bullets_el = function (host, task_idx) {
+                    this.bullets_el.innerHTML = '';
+                    host.week.forEach((d, i) => {
+                        const date = d.setHours(0,0,0,0);
+                        var bullet_el = document.createElement('span');
+                        bullet_el.classList.add("bullet");
+                        bullet_el.classList.add("cal-btn");
+                        bullet_el.onmouseover = (e) => {host.update_focus(bullet_el, task_idx, date);}
+
+                        // order matters
+                        // console.log(this.due_on, date)
+                        if (this.due_on.includes(date)) {
+                            bullet_el.innerText = '.';
+                        }
+                        if (this.done_on.includes(date)) {
+                            bullet_el.innerText = '/';
+                        }
+
+                        this.bullets_el.appendChild(bullet_el);
+                    });
+                }
+
+                this.update_label = function (label_el) {
+                    this.label = label_el.innerText;
+                }
             }
 
             function View () {
@@ -170,6 +253,7 @@
                 this.dates = {};
                 this.today = null;
                 this.focus = null;
+                this.week = [];
 
                 this.install = function (host) {
                     this.today = new Date();
@@ -182,15 +266,18 @@
                     this.month_el = document.createElement('span');
                     this.month_el.setAttribute('id', 'month');
 
-                    this.prev_el = document.createElement('a');
+                    this.prev_el = document.createElement('span');
                     this.prev_el.onclick = () => {this.prev()};
-                    this.prev_el.textContent = '<';
-                    this.next_el = document.createElement('a');
+                    this.prev_el.classList.add("cal-btn");
+                    this.prev_el.innerText = '<';
+                    this.next_el = document.createElement('span');
                     this.next_el.onclick = () => {this.next()};
-                    this.next_el.textContent = '>';
-                    this.today_el = document.createElement('a');
+                    this.next_el.classList.add("cal-btn");
+                    this.next_el.innerText = '>';
+                    this.today_el = document.createElement('span');
                     this.today_el.onclick = () => {this.today = new Date(); this.update();};
-                    this.today_el.textContent = '.';
+                    this.today_el.classList.add("cal-btn");
+                    this.today_el.innerText = '.';
 
                     this.nav_el = document.createElement('div');
                     this.nav_el.setAttribute('id', 'nav');
@@ -200,7 +287,6 @@
                     this.nav_el.appendChild(this.month_el);
                     this.nav_el.appendChild(this.next_el);
 
-                    this.week = [];
                     this.week_el = document.createElement('div');
                     this.week_el.setAttribute('id', 'week');
 
@@ -211,7 +297,7 @@
                     this.input_el.setAttribute("type", "text");
                     this.input_el.setAttribute("placeholder", "what's your next task?");
                     this.input_el.setAttribute('id', 'input');
-                    this.input_el.onkeydown = (e) => {if(e.keyCode == 13) {this.add_task(this.input_el.value); this.input_el.value = '';}}
+                    this.input_el.onkeydown = (e) => {if(e.keyCode == 13) {this.add_task(this.input_el.value); this.input_el.value = '';} else if (this.focus) {this.focus = undefined;}}
 
                     this.calendar_el.appendChild(this.nav_el);
                     this.calendar_el.appendChild(this.week_el);
@@ -242,11 +328,13 @@
                     this.year_el.innerText = `${this.year}`;
                     this.month_el.innerText = `${this.month + 1}`;
                     
+                    this.week = [];
                     this.week_el.innerHTML = '';
                     for (var i = 0; i < 7; i++) {
                         var day = get_nth_date_of_week(this.today, i);
+                        day.setHours(0,0,0,0);
                         var date = day.getDate();
-                        this.week.push(date);
+                        this.week.push(day);
                         var day_el = document.createElement('span');
                         day_el.innerText = `${date}`;
                         if (is_weekend(day))
@@ -255,59 +343,111 @@
                     }
 
                     this.tasks_el.innerHTML = '';
-                    this.tasks.forEach((element, i) => {
-                        var task_el = document.createElement('span');
-                        task_el.classList.add("task");
-                        // todo: bullets
-                        // label
-                        var label_el = document.createElement('span');
-                        label_el.innerText = `${element.label}`;
-                        label_el.setAttribute("contentEditable", true);
-                        label_el.classList.add("label");
-                        label_el.onclick = (e) => {label_el.onblur = (e) => {this.update_label(label_el, element); console.log(element)};};
-                        task_el.appendChild(label_el);
-                        // ops
-                        var ops_el = document.createElement('span');
-                        ops_el.classList.add("ops");
-                        ops_el.innerHTML = `<span class="clickable op">c</span> <span class="clickable op">x</span>`;
-                        var copy_el = ops_el.firstChild;
-                        copy_el.onclick = async (e) => {await navigator.clipboard.writeText(label_el.innerText); show_toast("copied!")};
-                        var del_el = copy_el.nextElementSibling;
-                        del_el.onclick = (e) => {this.delete_task(i); show_toast("deleted!")};
-
-                        task_el.appendChild(ops_el);
-
-                        this.tasks_el.appendChild(task_el);
+                    this.tasks.forEach((task, i) => {
+                        task.install(this, i);
                     });
                 }
 
                 this.add_task = function (label) {
                     if (label === "")
                         return;
-                    var task = new Task(label);
+                    var task = new Task({ label: label });
                     this.tasks.push(task);
                     // console.log(this.tasks);
+                    this.save();
                     this.update();
-                }
-
-                this.update_label = function (label_el, task) {
-                    task.label = label_el.innerText;
                 }
 
                 this.delete_task = function (i) {
                     this.tasks.splice(i, 1);
+                    this.save();
                     this.update();
+                }
+
+                this.update_focus = function (bullet_el, task_idx, date) {
+                    /*
+                    try {
+                        this.focus.el.classList.remove("focus");
+                    }
+                    catch (e) {
+
+                    }
+                    */
+                    this.focus = { el: bullet_el, idx: task_idx, date: date };
+                    bullet_el.classList.add("focus");
+                }
+
+                this.update_focused_bullet = function (bullet) {
+                    if (!this.focus)
+                        return;
+                    var task = this.tasks[this.focus.idx];
+                    if (bullet == '.') {
+                        task.due_on.push(this.focus.date);
+                    }
+                    else if (bullet == '/') {
+                        task.done_on.push(this.focus.date);
+                    }
+                    else if (bullet == '') {
+                        var idx = task.done_on.indexOf(this.focus.date);
+                        task.done_on.splice(idx, 1);
+                        idx = task.due_on.indexOf(this.focus.date);
+                        task.due_on.splice(idx, 1);
+                    }
+                    task.update_bullets_el(this, this.focus.idx);
+                    this.save();
+                }
+
+                this.save = function () {
+                    const save_data = { "tasks": this.tasks };
+                    window.localStorage.setItem("rw_data", JSON.stringify(save_data));
+                }
+
+                this.load = function () {
+                    try {
+                        const load_data = JSON.parse(window.localStorage.getItem("rw_data"));
+                        if (load_data)
+                        {
+                            const tasks = load_data["tasks"];
+                            tasks.forEach((json) => {this.tasks.push(new Task(json))});
+                        }
+                    }
+                    catch (e) {
+                        show_toast("failed to load data");
+                    }
+                }
+
+                this.keydown = function (e) {
+                    if (e.shiftKey && e.keyCode == 188) {
+                        this.prev();
+                    }
+                    else if (e.shiftKey && e.keyCode == 190) {
+                        this.next();
+                    }
+                    else {
+                        switch (e.keyCode) {
+                            case 190:
+                            case 191:
+                            case 88:
+                            case 219:
+                            case 221:
+                                this.update_focused_bullet(e.key);
+                                break;
+                            case 46: // delete
+                            case 8: // backspace
+                            case 32: // space
+                                this.update_focused_bullet('');
+                        }
+                    }
                 }
             }
 
             window.onload = function () {
                 const rw = new View();
+                rw.load();
                 rw.install(document.body);
+                document.onkeydown = (e) => {rw.keydown(e);};
             }
 
-            document.onkeydown = function keyDown (e) {
-
-            }
         </script>
     </body>
 </html>
