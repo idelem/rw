@@ -131,7 +131,7 @@
                 position: relative;
                 opacity: 0.3;
             }
-            /* .finished:after {
+            /* .finished::after {
                 position: absolute;
                 left: 0;
                 right: 0;
@@ -159,6 +159,20 @@
                 background-color: var(--grid-color);
                 transition: background 0.5s;
             }
+            .today {
+                position: relative;
+            }
+            .today::after {
+                background-color: var(--grid-color);
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: -100vh;
+                opacity: 0.3;
+                display: block;
+                height: 200vh;
+                content: "";
+            }
             .hidden {
                 display: none;
             }
@@ -180,6 +194,13 @@
             function is_weekend(date) {
                 var day = date.getDay();
                 return (day === 6) || (day === 0);
+            }
+
+            function is_today(date) {
+                var today = new Date();
+                return (today.getDate() == date.getDate()
+                    && today.getMonth() == date.getMonth()
+                    && today.getFullYear() == date.getFullYear());
             }
 
             function show_toast(label) {
@@ -247,6 +268,7 @@
 
                 this.update_bullets_el = function (host, task_idx) {
                     this.bullets_el.innerHTML = '';
+                    const today = new Date().setHours(0,0,0,0);
                     host.week.forEach((d, i) => {
                         const date = d.setHours(0,0,0,0);
                         var bullet_el = document.createElement('span');
@@ -268,6 +290,12 @@
                         if (this.is_finished(date)) {
                             bullet_el.classList.add("finished");
                         }
+                        /*
+                        // highlight today
+                        if (date === today) {
+                            bullet_el.classList.add("today");
+                        }
+                        */
                         this.bullets_el.appendChild(bullet_el);
                     });
                 }
@@ -378,6 +406,8 @@
                         day_el.innerText = `${date}`;
                         if (is_weekend(day))
                             day_el.classList.add("weekend");
+                        if (is_today(day))
+                            day_el.classList.add("today");
                         this.week_el.appendChild(day_el);
                     }
 
@@ -474,6 +504,12 @@
                         this.prev();
                     }
                     else if (e.shiftKey && e.keyCode == 190) {
+                        this.next();
+                    }
+                    else if (e.keyCode == 37) {
+                        this.prev();
+                    }
+                    else if (e.keyCode == 39) {
                         this.next();
                     }
                     else {
