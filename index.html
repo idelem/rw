@@ -42,8 +42,14 @@
                 grid-template-columns: repeat(7, 1fr);
             }
             #tasks {
+                margin-right: -6em;
+                padding-right: 6em;
+                height: 270px;
+                overflow: scroll;
             }
-            
+            #tasks::-webkit-scrollbar {
+                display: none;
+            }
             #nav, #week {
                 width: 21em;
             }
