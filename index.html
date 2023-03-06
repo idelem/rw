@@ -162,15 +162,15 @@
             .today {
                 position: relative;
             }
-            .today::after {
+            .today::before {
                 background-color: var(--grid-color);
                 position: absolute;
                 left: 0;
                 right: 0;
-                top: -100vh;
+                top: calc(-20vh - 27px);
                 opacity: 0.3;
-                display: block;
-                height: 200vh;
+                display: inline-block;
+                height: 100vh;
                 content: "";
             }
             .overdue {
