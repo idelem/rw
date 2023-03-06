@@ -17,7 +17,7 @@
             body {
                 height: 100vh;
                 margin: 0;
-                overflow: hidden;
+                /* overflow: hidden; */
                 background: var(--page-color);
                 color: var(--text-color);
                 position: relative;
@@ -173,6 +173,12 @@
                 height: 200vh;
                 content: "";
             }
+            .overdue {
+                color: var(--mark-color);
+            }
+            .dim {
+                opacity: 0.3;
+            }
             .hidden {
                 display: none;
             }
@@ -210,7 +216,7 @@
                 setTimeout(() => {toast.classList.remove("show"); }, 1000);
             }
 
-            function Task ({id=null, label="", created_on=null, starts_on=null, ends_on=null, finished_on=null, done_on=[], due_on=[]}) {
+            function Task ({id=null, label="", created_on=null, starts_on=null, ends_on=null, finished_on=null, done_on=[], due_on=[], progress={}, goal=0}) {
                 this.id = id;
                 this.label = label;
                 this.created_on = created_on;
@@ -220,9 +226,17 @@
                 this.is_finished = function(date=0){
                     return this.finished_on != null && this.finished_on <= date;
                 }
+                this.is_started = function(date=0){
+                    return this.starts_on == null || this.starts_on <= date;
+                }
+                this.is_ended = function(date=0){
+                    return this.ends_on != null && this.ends_on <= date;
+                }
                 // timestamps
                 this.done_on = done_on;
                 this.due_on = due_on;
+                this.progress = progress;
+                this.goal = goal;
 
                 this.el = null;
                 this.bullets_el = null;
@@ -231,7 +245,10 @@
 
                 this.install = function (host /* view */, i) {
                     var first_date = get_nth_date_of_week(host.today, 0).setHours(0,0,0,0);
+                    var last_date = get_nth_date_of_week(host.today, 6).setHours(0,0,0,0);
                     if (this.is_finished(first_date))
+                        return;
+                    if (!this.is_started(last_date))
                         return;
 
                     this.el = document.createElement('span');
@@ -250,6 +267,8 @@
                     this.label_el.classList.add("label");
                     this.label_el.onclick = (e) => {this.label_el.onblur = (e) => {this.update_label(this.label_el);};};
                     this.update_label_el();
+                    if (this.is_ended(first_date))
+                        this.label_el.classList.add("overdue");
                     this.el.appendChild(this.label_el);
 
                     // ops
@@ -278,14 +297,20 @@
 
                         // order matters
                         // console.log(this.due_on, date)
-                        if (this.due_on.includes(date)) {
-                            bullet_el.innerText = '.';
-                        }
-                        if (this.done_on.includes(date)) {
-                            bullet_el.innerText = '/';
-                        }
                         if (this.finished_on == date) {
                             bullet_el.innerText = 'x';
+                        }
+                        else if (this.done_on.includes(date)) {
+                            bullet_el.innerText = '/';
+                        }
+                        else if (this.due_on.includes(date)) {
+                            bullet_el.innerText = '.';
+                        }
+                        else if (this.ends_on == date) {
+                            bullet_el.innerHTML = '<span class="dim">}</span>';
+                        }
+                        else if (this.starts_on == date) {
+                            bullet_el.innerHTML = '<span class="dim">{</span>';
                         }
                         if (this.is_finished(date)) {
                             bullet_el.classList.add("finished");
@@ -420,7 +445,7 @@
                 this.add_task = function (label) {
                     if (label === "")
                         return;
-                    var task = new Task({ label: label });
+                    var task = new Task({ label: label, starts_on: this.today.setHours(0,0,0,0) });
                     this.tasks.push(task);
                     // console.log(this.tasks);
                     this.save();
@@ -475,6 +500,12 @@
                             task.finished_on = this.focus.date;
                         }
                     }
+                    else if (bullet == '[') {
+                        task.starts_on = this.focus.date;
+                    }
+                    else if (bullet == ']') {
+                        task.ends_on = this.focus.date;
+                    }
                     task.update_bullets_el(this, this.focus.idx);
                     task.update_label_el();
                     this.save();
@@ -525,6 +556,10 @@
                             case 8: // backspace
                             case 32: // space
                                 this.update_focused_bullet('');
+                            case 219: // [
+                                this.update_focused_bullet('[');
+                            case 221: // ]
+                                this.update_focused_bullet(']');
                         }
                     }
                 }
