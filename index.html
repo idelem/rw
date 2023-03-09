@@ -518,11 +518,11 @@
                         }
                     }
                     else if (bullet == '[') {
-                        if (task.ends_on >= this.focus.date)
+                        if (task.ends_on == null || task.ends_on >= this.focus.date)
                             task.starts_on = this.focus.date;
                     }
                     else if (bullet == ']') {
-                        if (task.starts_on <= this.focus.date)
+                        if (task.starts_on == null || task.starts_on <= this.focus.date)
                             task.ends_on = this.focus.date;
                     }
                     task.update_bullets_el(this, this.focus.idx);
