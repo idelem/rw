@@ -17,19 +17,17 @@
             body {
                 height: 100vh;
                 margin: 0;
-                /* overflow: hidden; */
+                overflow: hidden;
                 background: var(--page-color);
                 color: var(--text-color);
                 position: relative;
                 font-family: "inconsolata", monospace;
             }
             #calendar {
-                position: absolute;
-                left:0;
-                top: 0;
-                bottom: 0;
-                right: 0;
-                height: 60vh;
+                position: relative;
+                top: 50%;
+                transform: translateY(-50%);
+                /* height: 60vh; */
                 width: 36em;
                 margin: auto;
             }
@@ -44,7 +42,8 @@
             #tasks {
                 margin-right: -6em;
                 padding-right: 6em;
-                max-height: 270px;
+                max-height: calc(100vh - 81px);
+                /* max-height: 270px; */
                 overflow: scroll;
             }
             #tasks::-webkit-scrollbar {
@@ -173,10 +172,11 @@
                 position: absolute;
                 left: 0;
                 right: 0;
-                top: calc(-20vh - 27px);
+                /* top: calc(-20vh - 27px); */
+                top: -100vh;
                 opacity: 0.3;
                 display: inline-block;
-                height: 100vh;
+                height: 200vh;
                 content: "";
             }
             .overdue {
