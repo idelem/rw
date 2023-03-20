@@ -222,7 +222,7 @@
                 setTimeout(() => {toast.classList.remove("show"); }, 1000);
             }
 
-            function Task ({id=null, label="", created_on=null, starts_on=null, ends_on=null, finished_on=null, done_on=[], due_on=[], progress={}, goal=0}) {
+            function Task ({id=null, label="", created_on=null, starts_on=null, ends_on=null, finished_on=null, done_on=[], due_on=[], progress={}, goal=0, last_time=null}) {
                 this.id = id;
                 this.label = label;
                 this.created_on = created_on;
@@ -241,6 +241,10 @@
                 // timestamps
                 this.done_on = done_on;
                 this.due_on = due_on;
+                
+                this.last_time = last_time;
+                
+                // goal tracking
                 this.progress = progress;
                 this.goal = goal;
 
@@ -303,7 +307,10 @@
 
                         // order matters
                         // console.log(this.due_on, date)
-                        if (this.finished_on == date) {
+                        if (date in this.progress) {
+                            bullet_el.innerText = this.progress[date];
+                        }
+                        else if (this.finished_on == date) {
                             bullet_el.innerText = 'x';
                         }
                         else if (this.done_on.includes(date)) {
@@ -346,6 +353,21 @@
 
                 this.update_label = function (label_el) {
                     this.label = label_el.innerText;
+                }
+
+                this.update_progress = function (date, bullet) {
+                    if (!this.progress.hasOwnProperty(date)) {
+                        if (bullet != 'del')
+                            this.progress[date] = bullet;
+                        return;
+                    }
+                    if (bullet === 'del') {
+                        if (this.progress[date] === '')
+                            return;
+                        this.progress[date] = this.progress[date].slice(0, -1);
+                        return;
+                    }
+                    this.progress[date] = this.progress[date] + bullet;
                 }
             }
 
@@ -493,21 +515,29 @@
                     }
                     else if (bullet == '') {
                         // 按一次只能删一层的内容
-                        var idx = task.done_on.indexOf(this.focus.date);
-                        if (idx >= 0) {
-                            task.done_on.splice(idx, 1);
+                        if (this.focus.date in task.progress) {
+                            delete task.progress[this.focus.date];
                         }
                         else {
-                            idx = task.due_on.indexOf(this.focus.date);
-                            if (idx >= 0)
-                                task.due_on.splice(idx, 1);
+                            var idx = task.done_on.indexOf(this.focus.date);
+                            if (idx >= 0) {
+                                task.done_on.splice(idx, 1);
+                            }
                             else {
-                                if (task.starts_on == this.focus.date)
-                                    task.starts_on = null;
-                                if (task.ends_on == this.focus.date)
-                                    task.ends_on = null;
+                                idx = task.due_on.indexOf(this.focus.date);
+                                if (idx >= 0)
+                                    task.due_on.splice(idx, 1);
+                                else {
+                                    if (task.starts_on == this.focus.date)
+                                        task.starts_on = null;
+                                    if (task.ends_on == this.focus.date)
+                                        task.ends_on = null;
+                                }
                             }
                         }
+                    }
+                    else if (bullet == 'del') {
+                        task.update_progress(this.focus.date, bullet);
                     }
                     else if (bullet == 'x') {
                         if (task.is_finished(this.focus.date)) {
@@ -524,6 +554,10 @@
                     else if (bullet == ']') {
                         if (task.starts_on == null || task.starts_on <= this.focus.date)
                             task.ends_on = this.focus.date;
+                    }
+                    // Check if bullet is numeral or + or -
+                    else if (/^[0-9+-]$/.test(bullet)) {
+                        task.update_progress(this.focus.date, bullet);
                     }
                     task.update_bullets_el(this, this.focus.idx);
                     task.update_label_el();
@@ -561,6 +595,15 @@
                     }
                     else if (e.keyCode == 39) {
                         this.next();
+                    }
+                    else if ((e.keyCode >= 48 && e.keyCode <= 57) || e.keyCode == 187 || e.keyCode == 189) {
+                    
+                        // Check if key pressed is numeral or + or -
+                         this.update_focused_bullet(e.key);
+                    }
+                    else if (e.key === 'Backspace') {
+                        e.preventDefault();
+                        this.update_focused_bullet('del');
                     }
                     else {
                         switch (e.keyCode) {
