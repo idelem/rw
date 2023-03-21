@@ -284,7 +284,7 @@
                     // ops
                     this.ops_el = document.createElement('span');
                     this.ops_el.classList.add("ops");
-                    this.ops_el.innerHTML = `<span class="op">c</span> <span class="op">x</span>`;
+                    this.ops_el.innerHTML = `<span class="op">c</span> <span class="op">x</span> <span class="op">⨀</span>`;
                     var copy_el = this.ops_el.firstChild;
                     copy_el.onclick = async (e) => {await navigator.clipboard.writeText(this.label_el.innerText); show_toast("copied!")};
                     var del_el = copy_el.nextElementSibling;
