@@ -602,8 +602,10 @@
                          this.update_focused_bullet(e.key);
                     }
                     else if (e.key === 'Backspace') {
-                        e.preventDefault();
-                        this.update_focused_bullet('del');
+                        if (document.activeElement === document.body) {
+                            e.preventDefault();
+                            this.update_focused_bullet('del');
+                        }
                     }
                     else {
                         switch (e.keyCode) {
